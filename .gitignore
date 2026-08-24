@@ -12,3 +12,14 @@ build/
 .idea/
 *.swp
 *.swo
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.env
+.env.local
+.DS_Store
+.idea/
+*.swp
