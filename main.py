@@ -128,10 +128,12 @@ class StateStore:
     def store_context(self, scope: str, context_id: str, version: int, payload: dict):
         """Store context, rejecting if version is stale"""
         key = f"{scope}:{context_id}"
+        print(f"DEBUG store_context: {key}")
 
         if key in self.contexts:
             current_version = self.contexts[key]["version"]
             if version < current_version:
+                print(f"DEBUG: Stale version")
                 return False, current_version  # Stale version
 
         self.contexts[key] = {
@@ -139,13 +141,17 @@ class StateStore:
             "payload": payload,
             "stored_at": datetime.utcnow().isoformat() + "Z",
         }
+        print(f"DEBUG: Stored! Total contexts now: {len(self.contexts)}")
         return True, version
 
     def get_context(self, scope: str, context_id: str):
         """Get context by scope and context_id"""
         key = f"{scope}:{context_id}"
         if key in self.contexts:
-            return self.contexts[key]["payload"]
+            payload = self.contexts[key]["payload"]
+            print(f"DEBUG get_context: {scope}:{context_id} -> keys={list(payload.keys()) if isinstance(payload, dict) else 'not-dict'}")
+            return payload
+        print(f"DEBUG get_context: {scope}:{context_id} -> NOT FOUND. Available keys: {list(self.contexts.keys())}")
         return None
 
     def start_conversation(self, conversation_id: str, merchant_id: str, customer_id: Optional[str]):
@@ -175,6 +181,15 @@ class StateStore:
 
 app = FastAPI(title="Vera Message Composer", version="1.0.0")
 state_store = StateStore()
+
+
+@app.get("/v1/debug")
+async def debug_state():
+    """Debug endpoint to see stored contexts"""
+    return {
+        "stored_contexts": list(state_store.contexts.keys()),
+        "count": len(state_store.contexts)
+    }
 
 
 @app.post("/v1/context", response_model=ContextResponse)
@@ -222,9 +237,9 @@ async def tick(request: TickRequest):
             if not trigger_payload:
                 continue  # Trigger not loaded yet
 
-            # Determine merchant and customer
-            merchant_id = trigger_payload.get("payload", {}).get("merchant_id")
-            customer_id = trigger_payload.get("scope") == "customer" and trigger_payload.get("payload", {}).get("customer_id")
+            # Determine merchant and customer (merchant_id at top level)
+            merchant_id = trigger_payload.get("merchant_id")
+            customer_id = trigger_payload.get("customer_id")
 
             if not merchant_id:
                 continue
@@ -234,9 +249,7 @@ async def tick(request: TickRequest):
             if not merchant_payload:
                 continue
 
-            category_slug = merchant_payload.get("identity", {}).get("category")
-            if not category_slug:
-                category_slug = "dentists"  # Default
+            category_slug = merchant_payload.get("identity", {}).get("category", "dentists")
 
             category_payload = state_store.get_context("category", category_slug)
             if not category_payload:
@@ -255,7 +268,7 @@ async def tick(request: TickRequest):
                 customer=customer_payload,
             )
 
-            # Create conversation if not exists
+            # Create conversation
             conversation_id = f"conv_{merchant_id}_{trigger_id}_{datetime.utcnow().timestamp()}"
             state_store.start_conversation(conversation_id, merchant_id, customer_id)
             state_store.add_message(conversation_id, "vera", composed["body"], request.now)
@@ -281,7 +294,8 @@ async def tick(request: TickRequest):
 
     except Exception as e:
         print(f"Error in /v1/tick: {e}")
-        pass  # Continue with other triggers
+        import traceback
+        traceback.print_exc()
 
     return TickResponse(actions=actions)
 
