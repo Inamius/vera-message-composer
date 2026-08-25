@@ -306,12 +306,12 @@ async def handle_reply(request: ReplyRequest):
     Handle merchant reply (multi-turn capability).
     For now, a simple echo; full implementation would do intent detection.
     """
-    try:
-        # Get conversation state
-        conv = state_store.get_conversation(request.conversation_id)
-        if not conv:
-            raise HTTPException(status_code=404, detail="Conversation not found")
+    # Get conversation state
+    conv = state_store.get_conversation(request.conversation_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
 
+    try:
         # Add merchant message to conversation
         state_store.add_message(request.conversation_id, "merchant", request.message, request.timestamp)
 
@@ -332,6 +332,8 @@ async def handle_reply(request: ReplyRequest):
 
         return ReplyResponse(action=action)
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
