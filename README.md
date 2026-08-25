@@ -106,11 +106,7 @@ Bot URL: `https://vera-message-composer-production.up.railway.app`
 Files included:
 - bot.py — Message composition engine
 - main.py — FastAPI server
-- requirements.txt — Dependencies
-- test_local.py — Local testing
-- expanded/ — Dataset
 
 ---
 
-Status: Ready for submission
 Last updated: 2026-08-25
