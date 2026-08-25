@@ -1,12 +1,12 @@
 """
 Vera Message Composer API Server
 
-Exposes 5 endpoints for the judge harness:
-  - POST /v1/context    → Store context (idempotent by context_id + version)
-  - POST /v1/tick       → Compose messages using available triggers
-  - POST /v1/reply      → Handle merchant replies (multi-turn)
-  - GET  /v1/healthz    → Health check
-  - GET  /v1/metadata   → Bot metadata
+5 endpoints for the magicpin challenge:
+- POST /v1/context    → Store context
+- POST /v1/tick       → Compose messages
+- POST /v1/reply      → Handle replies
+- GET  /v1/healthz    → Health check
+- GET  /v1/metadata   → Bot metadata
 """
 
 import json
